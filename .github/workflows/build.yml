@@ -23,7 +23,7 @@ jobs:
         run: |
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install transformers numpy huggingface_hub
-          huggingface-cli download navai-uz/whisper-base-uzbek --local-dir hf-model
+          python -c "from huggingface_hub import snapshot_download; snapshot_download('navai-uz/whisper-base-uzbek', local_dir='hf-model')"
 
       - name: Convert to ggml (fp16)
         run: |
