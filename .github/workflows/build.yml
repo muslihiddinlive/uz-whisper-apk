@@ -13,7 +13,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
 
       - name: Clone whisper.cpp and openai/whisper
         run: |
@@ -41,7 +40,7 @@ jobs:
 
       - name: Build APK
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           cd whisper.cpp/examples/whisper.android
           chmod +x gradlew
           ./gradlew assembleDebug
