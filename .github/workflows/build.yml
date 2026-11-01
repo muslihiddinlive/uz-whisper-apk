@@ -1,0 +1,52 @@
+name: Build Uzbek Whisper APK
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+
+      - name: Clone whisper.cpp and openai/whisper
+        run: |
+          git clone --depth 1 https://github.com/ggerganov/whisper.cpp
+          git clone --depth 1 https://github.com/openai/whisper
+
+      - name: Download NavAI model from Hugging Face
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install transformers numpy huggingface_hub
+          huggingface-cli download navai-uz/whisper-base-uzbek --local-dir hf-model
+
+      - name: Convert to ggml (fp16)
+        run: |
+          mkdir -p out
+          python whisper.cpp/models/convert-h5-to-ggml.py hf-model whisper out
+          ls -lh out
+
+      - name: Put model into Android app and set language to Uzbek
+        run: |
+          APP=whisper.cpp/examples/whisper.android
+          mkdir -p $APP/app/src/main/assets/models
+          cp out/ggml-model.bin $APP/app/src/main/assets/models/ggml-uzbek-base.bin
+          grep -rl 'language = "en"' $APP --include=*.c --include=*.cpp --include=*.kt | xargs -r sed -i 's/language = "en"/language = "uz"/'
+
+      - name: Build APK
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          cd whisper.cpp/examples/whisper.android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uzbek-whisper-apk
+          path: whisper.cpp/examples/whisper.android/app/build/outputs/apk/debug/*.apk
